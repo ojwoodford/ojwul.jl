@@ -1,5 +1,5 @@
-using SHA
 export filehash
+using SHA
 
 function filehash(fpath::String)
 open(fpath) do file
