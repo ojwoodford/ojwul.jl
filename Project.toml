@@ -4,8 +4,10 @@ authors = ["Oliver Woodford"]
 version = "0.1.0"
 
 [deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PkgTemplates = "14b8a8f1-9102-5b29-a752-f990bacb7fe1"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 UserConfig = "38191a5c-9707-409e-a5e4-8d538fd01011"
 
 [compat]
