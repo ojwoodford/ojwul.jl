@@ -4,12 +4,12 @@ using LinearAlgebra
 
 function rodrigues(x::T, y::T, z::T) where T<:AbstractFloat
 theta2 = x * x + y * y + z * z
-cosf = T(0.5);
-sinc = T(1);
+cosf = T(0.5)
+sinc = T(1)
 if theta2 > T(2.23e-16)
     theta = sqrt(theta2)
-    cosf = (T(1) - cos(theta)) / theta2;
-    sinc = sin(theta) / theta;
+    cosf = (T(1) - cos(theta)) / theta2
+    sinc = sin(theta) / theta
 end
 a = x * y * cosf
 b = sinc * z
