@@ -1,4 +1,4 @@
-export rodrigues
+export rodrigues, proj, homg
 using StaticArrays
 
 function rodrigues(x::T, y::T, z::T) where T<:Number
@@ -25,4 +25,16 @@ function rodrigues(x::T, y::T, z::T) where T<:Number
     return SMatrix{3, 3, T}((x * x - theta2) * cosf + 1, a + b, c - d,
                             a - b, (y * y - theta2) * cosf + 1, e + f,
                             c + d, e - f, (z * z - theta2) * cosf + 1)
+end
+
+function proj(x)
+    return x[1:end-1] ./ x[end]
+end
+
+function proj(x::SVector)
+    return x[SVector{end-1, Int}(1:end-1)] ./ x[end]
+end
+
+function homg(x)
+    return [x; 1]
 end
