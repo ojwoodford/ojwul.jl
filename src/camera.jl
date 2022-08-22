@@ -4,16 +4,16 @@ abstract type AbstractCamera end
 using StaticArrays
 
 
-function image2pixel(imsz, x)
-    return SVector((x[1] + 0.5) * imsz[2], x[2] * imsz[2] + imsz[1] * 0.5)
+function image2pixel(halfimsz, x)
+    return x .* halfimsz[1] .+ halfimsz
 end
 
-function pixel2image(imsz, x)
-    return SVector(x[1] / imsz[2] - 0.5, (x[2] - imsz[1] * 0.5) / imsz[2])
+function pixel2image(halfimsz, x)
+    return (x .- halfimsz) ./ halfimsz[1]
 end
 
-function pixel2image(imsz, x, W)
-    return (SVector(x[1] / imsz[2] - 0.5, (x[2] - imsz[1] * 0.5) / imsz[2]), W ./ imsz[2])
+function pixel2image(halfimsz, x, W)
+    return ((x .- halfimsz) ./ halfimsz[1], W ./ halfimsz[1])
 end
 
 
@@ -56,13 +56,13 @@ struct ExtendedUnifiedCamera{T<:Number} <: AbstractCamera
 end
 
 function ideal2image(camera::ExtendedUnifiedCamera, x)
-    z = 1 / (1 + camera.alpha * (sqrt(camera.beta * (x[1] ^ 2 + x[2] ^ 2) + 1) - 1))
+    z = 1 ./ (1 .+ camera.alpha .* (sqrt.(camera.beta .* sum(abs2, x, dims=1) .+ 1) .- 1))
     return (x .* z) .* camera.f .+ camera.c
 end
 
 function image2ideal(camera::ExtendedUnifiedCamera, x)
     y = (x .- camera.c) ./ camera.f
-    z = camera.beta * (y[1] ^ 2 + y[2] ^ 2)
-    z = (1 + camera.alpha * (sqrt(1 + z * (1 - 2 * camera.alpha)) - 1)) / (1 - z * (camera.alpha ^ 2))
+    z = camera.beta .* sum(abs2, y, dims=1)
+    z = (1 .+ camera.alpha .* (sqrt.(1 .+ z .* (1 .- 2 .* camera.alpha)) .- 1)) ./ (1 .- z .* (camera.alpha ^ 2))
     return y .* z
 end

@@ -28,13 +28,25 @@ function rodrigues(x::T, y::T, z::T) where T<:Number
 end
 
 function proj(x)
-    return x[1:end-1] ./ x[end]
+    return x[1:end-1,:] ./ x[end,:]
 end
 
 function proj(x::SVector)
     return x[SVector{end-1, Int}(1:end-1)] ./ x[end]
 end
 
+function proj(x::SMatrix)
+    return x[SVector{end-1, Int}(1:end-1),:] ./ x[end,:]
+end
+
 function homg(x)
-    return [x; 1]
+    return vcat(x, ones(typeof(x[1]), 1, size(x, 2)))
+end
+
+function homg(x::SVector)
+    return vcat(x, 1)
+end
+
+function homg(x::SMatrix)
+    return vcat(x, ones(SMatrix{1, Size(x)[2]}))
 end
