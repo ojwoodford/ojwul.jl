@@ -13,7 +13,7 @@ function pixel2image(halfimsz, x)
 end
 
 function pixel2image(halfimsz, x, W)
-    return ((x .- halfimsz) ./ halfimsz[1], W ./ halfimsz[1])
+    return ((x .- halfimsz) ./ halfimsz[1], W .* halfimsz[1])
 end
 
 
@@ -30,7 +30,7 @@ function image2ideal(camera::SimpleCamera, x)
 end
 
 function image2ideal(camera::SimpleCamera, x, W)
-    return (x ./ camera.f, W ./ camera.f)
+    return x ./ camera.f, W .* camera.f
 end
 
 
@@ -45,6 +45,10 @@ end
 
 function image2ideal(camera::NoDistortionCamera, x)
     return (x .- camera.c) ./ camera.f
+end
+
+function image2ideal(camera::NoDistortionCamera, x, W)
+    return (x .- camera.c) ./ camera.f, W .* camera.f' 
 end
 
 
@@ -65,4 +69,11 @@ function image2ideal(camera::ExtendedUnifiedCamera, x)
     z = camera.beta .* sum(abs2, y, dims=1)
     z = (1 .+ camera.alpha .* (sqrt.(1 .+ z .* (1 .- 2 .* camera.alpha)) .- 1)) ./ (1 .- z .* (camera.alpha ^ 2))
     return y .* z
+end
+
+function image2ideal(camera::ExtendedUnifiedCamera, x, W)
+    y = (x .- camera.c) ./ camera.f
+    z = camera.beta .* sum(abs2, y, dims=1)
+    z = (1 .+ camera.alpha .* (sqrt.(1 .+ z .* (1 .- 2 .* camera.alpha)) .- 1)) ./ (1 .- z .* (camera.alpha ^ 2))
+    return y .* z, W .* (camera.f' ./ z)
 end

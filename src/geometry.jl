@@ -1,5 +1,6 @@
-export rodrigues, proj, homg
+export rodrigues, proj, homg, epipolarerror
 using StaticArrays
+using LinearAlgebra
 
 function rodrigues(x::T, y::T, z::T) where T<:Number
     if x == 0 && y == 0 && z == 0
@@ -31,11 +32,11 @@ function proj(x)
     return x[1:end-1,:] ./ x[end,:]
 end
 
-function proj(x::SVector)
+function proj(x::StaticVector)
     return x[SVector{end-1, Int}(1:end-1)] ./ x[end]
 end
 
-function proj(x::SMatrix)
+function proj(x::StaticArray)
     return x[SVector{end-1, Int}(1:end-1),:] ./ x[end,:]
 end
 
@@ -43,10 +44,22 @@ function homg(x)
     return vcat(x, ones(typeof(x[1]), 1, size(x, 2)))
 end
 
-function homg(x::SVector)
+function homg(x::StaticVector)
     return vcat(x, 1)
 end
 
-function homg(x::SMatrix)
+function homg(x::StaticArray)
     return vcat(x, ones(SMatrix{1, Size(x)[2]}))
+end
+
+function epipolarerror(RX, T, x, W=Nothing)
+    Tp = proj(T)
+    xe = x - Tp
+    RXp = proj(RX) - Tp
+    RXp = SVector(RXp[2], -RXp[1])
+    if W != Nothing
+        RXp = W' \ RXp
+        xe = W * xe
+    end
+    return dot(xe, normalize(RXp))
 end
