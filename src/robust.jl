@@ -1,18 +1,9 @@
 export Robustifier, NoRobust, HuberKernel, GemanMcclureKernel
-export robustify, robustifyarray
+export robustify
 import Plots.plot
 
 # Robustification
 abstract type Robustifier end
-
-function robustifyarray(kernel::Robustifier, cost::AbstractArray)
-    weight = similar(cost)
-    robcost = similar(cost)
-    for ind in eachindex(cost)
-        robcost[ind], weight[ind] = robustify(kernel, cost[ind])
-    end
-    return robcost, weight
-end
 
 
 struct NoRobust{T<:Real} <: Robustifier
@@ -61,6 +52,10 @@ end
 
 function displaykernel(kernel, maxval=1)
     x = LinRange(0, maxval, 1000)
-    cost, weight = robustifyarray(kernel, x .^ 2)
+    cost = x .^ 2
+    weight = similar(cost)
+    for ind in eachindex(cost)
+        cost[ind], weight[ind] = robustify(kernel, cost[ind])
+    end
     plot(x, [cost, weight])
 end
