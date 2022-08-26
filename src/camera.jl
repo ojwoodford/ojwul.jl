@@ -74,10 +74,11 @@ end
 function image2ideal(camera::ExtendedUnifiedCamera, x, W)
     y = (x - camera.c) ./ camera.f
     t = 1 - 2 * camera.alpha
-    u = camera.beta * (y[1] ^ 2 + y[2] ^ 2)
+    n = y' * y
+    u = camera.beta * n
     v = 1 - u * (camera.alpha ^ 2)
     w = sqrt(t * u + 1)
     z = (1 + camera.alpha * (w - 1)) / v
     z_ = (camera.alpha * camera.beta) * ((t * v / w) + (2 * camera.alpha) * (camera.alpha * (w - 1) + 1)) / v
-    return y * z, (W .* camera.f') / (z * I + (y * y') * z_)
+    return y * z, (W .* camera.f') * ((I - (y * y') * z_ / (z + n * z_)) / z)
 end
