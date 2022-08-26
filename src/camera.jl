@@ -1,4 +1,4 @@
-export NoDistortionCamera, ExtendedUnifiedCamera
+export AbstractCamera, SimpleCamera, NoDistortionCamera, ExtendedUnifiedCamera
 export ideal2image, image2ideal, pixel2image, image2pixel
 abstract type AbstractCamera end
 using StaticArrays
