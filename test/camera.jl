@@ -38,7 +38,8 @@ end
     # Test cameras
     testcamera(SimpleCamera(abs(randn())))
     f = abs.(@SVector randn(2))
-    c = @SVector randn(2)
+    c = (@SVector randn(2)) * 0.05
     testcamera(NoDistortionCamera(f, c))
-    testcamera(ExtendedUnifiedCamera(f, c, rand(), abs(randn()) * 0.1))
+    testcamera(ExtendedUnifiedCamera(f, c, 0.8, 0.001))
+    testcamera(ExtendedUnifiedCamera(f, c, 0.3, 0.01))
 end
