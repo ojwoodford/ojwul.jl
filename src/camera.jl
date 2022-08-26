@@ -1,7 +1,7 @@
 export AbstractCamera, SimpleCamera, NoDistortionCamera, ExtendedUnifiedCamera
 export ideal2image, image2ideal, pixel2image, image2pixel
 abstract type AbstractCamera end
-using StaticArrays
+using StaticArrays, LinearAlgebra
 
 
 function image2pixel(halfimsz, x)
@@ -72,8 +72,12 @@ function image2ideal(camera::ExtendedUnifiedCamera, x)
 end
 
 function image2ideal(camera::ExtendedUnifiedCamera, x, W)
-    y = (x .- camera.c) ./ camera.f
-    z = camera.beta .* sum(abs2, y, dims=1)
-    z = (1 .+ camera.alpha .* (sqrt.(1 .+ z .* (1 .- 2 .* camera.alpha)) .- 1)) ./ (1 .- z .* (camera.alpha ^ 2))
-    return y .* z, W .* (camera.f' ./ z)
+    y = (x - camera.c) ./ camera.f
+    t = 1 - 2 * camera.alpha
+    u = camera.beta * (y[1] ^ 2 + y[2] ^ 2)
+    v = 1 - u * (camera.alpha ^ 2)
+    w = sqrt(t * u + 1)
+    z = (1 + camera.alpha * (w - 1)) / v
+    z_ = (camera.alpha * camera.beta) * ((t * v / w) + (2 * camera.alpha) * (camera.alpha * (w - 1) + 1)) / v
+    return y * z, (W .* camera.f') / (z * I + (y * y') * z_)
 end
