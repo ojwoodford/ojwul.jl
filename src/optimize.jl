@@ -1,0 +1,3 @@
+export AbstractResidual
+
+abstract type AbstractResidual end
