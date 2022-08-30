@@ -1,3 +1,3 @@
-export AbstractResidual
+export AbstractVariable
 
-abstract type AbstractResidual end
+abstract type AbstractVariable end

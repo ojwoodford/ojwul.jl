@@ -1,7 +1,7 @@
 export rodrigues, proj, homg, epipolarerror
 export Rotation3D, Point3D, Pose3D
-using StaticArrays
-using LinearAlgebra
+using StaticArrays, LinearAlgebra
+import ojwul.AbstractVariable
 
 function rodrigues(x::T, y::T, z::T) where T<:Number
     if x == 0 && y == 0 && z == 0
@@ -66,16 +66,14 @@ function epipolarerror(RX, T, x, W=Nothing)
 end
 
 
-struct Point3D{T} <: FieldVector{3, T} <: AbstractVariable where T<:Real
-    x::T
-    y::T
-    z::T
+struct Point3D{T<:Real} <: AbstractVariable
+    v::SVector{3, T}
 end
 function ndims(var::Point3D)
     return 3
 end
 function update(var::Point3D, updatevec)
-    return Point3D(var + updatevec)
+    return Point3D(var.v + updatevec)
 end
 
 
@@ -91,6 +89,7 @@ end
 function update(var::Rotation3D, x, y, z)
     return Rotation3D(var.m * rodrigues(x, y, z))
 end
+Base.:*(rot::Rotation3D, point::Point3D) = Point3D(rot.m * point.v)
 
 
 struct Pose3D{T<:Real} <: AbstractVariable
@@ -106,7 +105,7 @@ end
 function inverse(var::Pose3D)
     return Pose3D(var.rot', var.rot' * -var.trans)
 end
-Base.:*(pose::Pose3D, point::Point3D) = Point3D(pose.rot * point + pose.trans)
+Base.:*(pose::Pose3D, point::Point3D) = Point3D(pose.rot.m * point.v + pose.trans.v)
 
 
 struct UnitPose3D{T<:Real} <: AbstractVariable
@@ -122,4 +121,4 @@ end
 function inverse(var::UnitPose3D)
     return Pose3D(var.rot', var.rot' * -var.trans.m[:,1])
 end
-Base.:*(pose::UnitPose3D, point::Point3D) = Point3D(pose.rot * point + pose.trans.m[:,1])
+Base.:*(pose::UnitPose3D, point::Point3D) = Point3D(pose.rot.m * point.v + pose.trans.m[:,1])
