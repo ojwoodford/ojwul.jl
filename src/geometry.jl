@@ -1,5 +1,5 @@
 export rodrigues, proj, homg, epipolarerror
-export Rotation3D, Point3D, Pose3D
+export Rotation3D, Point3D, Pose3D, UnitPose3D
 using StaticArrays, LinearAlgebra
 import ojwul.AbstractVariable
 
@@ -69,7 +69,7 @@ end
 struct Point3D{T<:Real} <: AbstractVariable
     v::SVector{3, T}
 end
-function ndims(var::Point3D)
+function nvars(var::Point3D)
     return 3
 end
 function update(var::Point3D, updatevec)
@@ -80,7 +80,7 @@ end
 struct Rotation3D{T<:Real} <: AbstractVariable
     m::SMatrix{3, 3, T}
 end
-function ndims(var::Rotation3D)
+function nvars(var::Rotation3D)
     return 3
 end
 function update(var::Rotation3D, updatevec)
@@ -96,7 +96,7 @@ struct Pose3D{T<:Real} <: AbstractVariable
     rot::Rotation3D{T}
     trans::Point3D{T}
 end
-function ndims(var::Pose3D)
+function nvars(var::Pose3D)
     return 6
 end
 function update(var::Pose3D, updatevec)
@@ -112,7 +112,7 @@ struct UnitPose3D{T<:Real} <: AbstractVariable
     rot::Rotation3D{T}
     trans::Rotation3D{T}
 end
-function ndims(var::UnitPose3D)
+function nvars(var::UnitPose3D)
     return 5
 end
 function update(var::UnitPose3D, updatevec)

@@ -1,7 +1,4 @@
 export cost, costresjac!
-export AbstractResidual
-
-abstract type AbstractResidual end
 
 function cost(residual::AbstractResidual, vars::Vector{<:AbstractVariable})
     # Dispatch to the correct residual function with the correct block of variables

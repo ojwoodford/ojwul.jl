@@ -1,3 +1,0 @@
-export AbstractVariable
-
-abstract type AbstractVariable end
