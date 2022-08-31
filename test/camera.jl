@@ -16,6 +16,9 @@ function testcamera(cam::AbstractCamera)
     # Test warping of the weight matrix
     ye = image2ideal(cam, xe)
     @test isapprox(Wy * (ye - y), W * err; rtol=1.e-3)
+
+    # Test the update of all zeros returns the same camera
+    @test cam == update(cam, zeros(nvars(cam)))
 end
 
 @testset "camera.jl" begin
