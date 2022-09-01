@@ -36,7 +36,7 @@ end
 
     # Test warping of the weight matrix
     ye = pixel2image(halfimsz, xe)
-    @test isapprox(Wy * (ye - y), W * err; rtol=1.e-6)
+    @test isapprox(Wy * (ye - y), W * err; rtol=1.e-5)
 
     # Test cameras
     testcamera(SimpleCamera(abs(randn())))

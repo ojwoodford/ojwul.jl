@@ -1,10 +1,17 @@
 export Robustifier, NoRobust, HuberKernel, GemanMcclureKernel
-export robustify
+export robustify, robustkernel
 import Plots.plot
 
 # Robustification
 abstract type Robustifier end
 
+function robustify(kernel::Robustifier, cost::Number)
+    return cost, 1
+end
+
+function robustkernel(residual::AbstractResidual)
+    return Robustifier
+end
 
 struct NoRobust{T<:Real} <: Robustifier
     height::T
