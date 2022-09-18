@@ -110,8 +110,8 @@ function nvars(var::ExtendedUnifiedCamera)
     return 6
 end
 function update(var::ExtendedUnifiedCamera, updatevec)
-    return ExtendedUnifiedCamera(update(var.sensor, updatevec[1:4]),
-                                 update(var.lens, updatevec[5:6]))
+    return ExtendedUnifiedCamera(update(var.sensor, updatevec[@SR(1, 4)]),
+                                 update(var.lens, updatevec[@SR(5, 6)]))
 end
 
 function ideal2image(camera::ExtendedUnifiedCamera, x)
@@ -134,6 +134,9 @@ end
 function computeresidual(residual::LensDistortResidual, lens::EULensDistortion)
     return rdistort - ideal2distorted(lens, rlinear)
 end
+function varindices(residual::LensDistortResidual)
+    return 1
+end
 
 function makeeucamera(coeffs)
     # Compute the sensor values
@@ -142,6 +145,6 @@ function makeeucamera(coeffs)
     # Create an optimization problem to convert the lens distortion
     #residuals = 
 
-
+    
 
 end

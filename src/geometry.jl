@@ -1,7 +1,7 @@
 export rodrigues, proj, homg, epipolarerror
 export Rotation3D, Point3D, Pose3D, UnitPose3D
 using StaticArrays, LinearAlgebra
-import ojwul.AbstractVariable
+import ojwul.AbstractVariable, ojwul.@SR
 
 function rodrigues(x::T, y::T, z::T) where T<:Number
     if x == 0 && y == 0 && z == 0
@@ -34,11 +34,11 @@ function proj(x)
 end
 
 function proj(x::StaticVector)
-    return x[SVector{end-1, Int}(1:end-1)] ./ x[end]
+    return x[@SR(1, end-1)] ./ x[end]
 end
 
 function proj(x::StaticArray)
-    return x[SVector{end-1, Int}(1:end-1),:] ./ x[end,:]
+    return x[@SR(1, end-1),:] ./ x[end,:]
 end
 
 function homg(x)
@@ -69,17 +69,28 @@ end
 struct Point3D{T<:Real} <: AbstractVariable
     v::SVector{3, T}
 end
+Point3D(x, y, z) = Point3D(SVector{3}(x, y, z))
+Point3D() = Point3D(SVector{3}(0., 0., 0.))
 function nvars(var::Point3D)
     return 3
 end
 function update(var::Point3D, updatevec)
     return Point3D(var.v + updatevec)
 end
+function update(var::Point3D, x, y, z)
+    return Point3D(var.v + SVector(x, y, z))
+end
+
+function proj(x::Point3D)
+    return SVector(x.v[1], x.v[2]) ./ x.v[3]
+end
 
 
 struct Rotation3D{T<:Real} <: AbstractVariable
     m::SMatrix{3, 3, T}
 end
+Rotation3D(x, y, z) = Rotation3D(rodrigues(x, y, z))
+Rotation3D() = Rotation3D(SMatrix{3, 3, Float64}(I(3)))
 function nvars(var::Rotation3D)
     return 3
 end
@@ -96,11 +107,14 @@ struct Pose3D{T<:Real} <: AbstractVariable
     rot::Rotation3D{T}
     trans::Point3D{T}
 end
+Pose3D(rx, ry, rz, tx, ty, tz) = Pose3D(Rotation3D(rx, ry, rz), Point3D(tx, ty, tz))
+Pose3D() = Pose3D(Rotation3D(), Point3D())
 function nvars(var::Pose3D)
     return 6
 end
 function update(var::Pose3D, updatevec)
-    return Pose3D(update(var.rot, updatevec[1:3]), update(var.trans, updatevec[4:6]))
+    return Pose3D(update(var.rot, updatevec[1], updatevec[2] , updatevec[3]), 
+                  update(var.trans, updatevec[4], updatevec[5], updatevec[6]))
 end
 function inverse(var::Pose3D)
     return Pose3D(var.rot', var.rot' * -var.trans)
@@ -112,6 +126,8 @@ struct UnitPose3D{T<:Real} <: AbstractVariable
     rot::Rotation3D{T}
     trans::Rotation3D{T}
 end
+UnitPose3D() = Pose3D(Rotation3D(), Rotation3D())
+UnitPose3D((rx, ry, rz, tx, ty, tz)) = Pose3D(Rotation3D(rx, ry, rz), Rotation3D()) # Normalize translation and initialize y & z axes
 function nvars(var::UnitPose3D)
     return 5
 end
