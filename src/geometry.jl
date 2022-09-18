@@ -87,10 +87,10 @@ end
 
 
 struct Rotation3D{T<:Real} <: AbstractVariable
-    m::SMatrix{3, 3, T}
+    m::SMatrix{3, 3, T, 9}
 end
 Rotation3D(x, y, z) = Rotation3D(rodrigues(x, y, z))
-Rotation3D() = Rotation3D(SMatrix{3, 3, Float64}(I(3)))
+Rotation3D() = Rotation3D(SMatrix{3, 3, Float64}(1., 0., 0., 0., 1., 0., 0., 0., 1.))
 function nvars(var::Rotation3D)
     return 3
 end
@@ -114,7 +114,7 @@ function nvars(var::Pose3D)
 end
 function update(var::Pose3D, updatevec)
     return Pose3D(update(var.rot, updatevec[1], updatevec[2] , updatevec[3]), 
-                  update(var.trans, updatevec[4], updatevec[5], updatevec[6]))
+                  update(var.trans, updatevec[@SR(4, 6)]))
 end
 function inverse(var::Pose3D)
     return Pose3D(var.rot', var.rot' * -var.trans)
@@ -132,7 +132,7 @@ function nvars(var::UnitPose3D)
     return 5
 end
 function update(var::UnitPose3D, updatevec)
-    return UnitPose3D(update(var.rot, updatevec[1:3]), update(var.trans, 0, updatevec[4], updatevec[5]))
+    return UnitPose3D(update(var.rot, updatevec[1], updatevec[2], updatevec[3]), update(var.trans, 0, updatevec[4], updatevec[5]))
 end
 function inverse(var::UnitPose3D)
     return Pose3D(var.rot', var.rot' * -var.trans.m[:,1])

@@ -84,6 +84,11 @@ function ideal2distorted(lens::EULensDistortion, x)
     return x .* z
 end
 
+function ideal2distorted(lens::EULensDistortion, x::StaticVector)
+    z = 1 / (1 + lens.alpha * (sqrt(lens.beta * (x[1] * x[1] + x[2] * x[2]) + 1) - 1))
+    return x * z
+end
+
 function distorted2ideal(lens::EULensDistortion, x)
     z = lens.beta .* sum(abs2, x, dims=1)
     z = (1 .+ lens.alpha .* (sqrt.(1 .+ z .* (1 .- 2 .* lens.alpha)) .- 1)) ./ (1 .- z .* (lens.alpha ^ 2))
