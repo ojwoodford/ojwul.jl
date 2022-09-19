@@ -1,5 +1,4 @@
-export createpackage
-export @SR
+export createpackage, SR
 using PkgTemplates, UserConfig, StaticArrays
 
 function createpackage(name::String)
@@ -10,6 +9,4 @@ function createpackage(name::String)
     template(name)
 end
 
-macro SR(start, finish)
-    return :( SVector{$finish-$start+1, Int}($start:$finish) )
-end
+const SR = StaticArrays.SUnitRange

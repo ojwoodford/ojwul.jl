@@ -85,7 +85,7 @@ function ideal2distorted(lens::EULensDistortion, x)
 end
 
 function ideal2distorted(lens::EULensDistortion, x::StaticVector)
-    z = 1 / (1 + lens.alpha * (sqrt(lens.beta * (x[1] * x[1] + x[2] * x[2]) + 1) - 1))
+    z = 1 / (1 + lens.alpha * (sqrt(lens.beta * (x' * x) + 1) - 1))
     return x * z
 end
 
@@ -115,8 +115,8 @@ function nvars(var::ExtendedUnifiedCamera)
     return 6
 end
 function update(var::ExtendedUnifiedCamera, updatevec)
-    return ExtendedUnifiedCamera(update(var.sensor, updatevec[@SR(1, 4)]),
-                                 update(var.lens, updatevec[@SR(5, 6)]))
+    return ExtendedUnifiedCamera(update(var.sensor, updatevec[SR(1, 4)]),
+                                 update(var.lens, updatevec[SR(5, 6)]))
 end
 
 function ideal2image(camera::ExtendedUnifiedCamera, x)

@@ -1,7 +1,7 @@
-export rodrigues, proj, homg, epipolarerror
+export rodrigues, proj, homg, epipolarerror, proj2orthonormal
 export Rotation3D, Point3D, Pose3D, UnitPose3D
 using StaticArrays, LinearAlgebra
-import ojwul.AbstractVariable, ojwul.@SR
+import ojwul.AbstractVariable, ojwul.SR
 
 function rodrigues(x::T, y::T, z::T) where T<:Number
     if x == 0 && y == 0 && z == 0
@@ -29,16 +29,21 @@ function rodrigues(x::T, y::T, z::T) where T<:Number
                             c + d, e - f, (z * z - theta2) * cosf + 1)
 end
 
+function proj2orthonormal(M)
+    s = svd(M);
+    return s.U * s.V';
+end
+
 function proj(x)
     return x[1:end-1,:] ./ x[end,:]
 end
 
 function proj(x::StaticVector)
-    return x[@SR(1, end-1)] ./ x[end]
+    return x[SR(1, end-1)] ./ x[end]
 end
 
 function proj(x::StaticArray)
-    return x[@SR(1, end-1),:] ./ x[end,:]
+    return x[SR(1, end-1),:] ./ x[end,:]
 end
 
 function homg(x)
@@ -95,11 +100,12 @@ function nvars(var::Rotation3D)
     return 3
 end
 function update(var::Rotation3D, updatevec)
-    return Rotation3D(var.m * rodrigues(updatevec[1], updatevec[2], updatevec[3]))
+    return var * Rotation3D(updatevec[1], updatevec[2], updatevec[3])
 end
 function update(var::Rotation3D, x, y, z)
-    return Rotation3D(var.m * rodrigues(x, y, z))
+    return var * Rotation3D(x, y, z)
 end
+Base.:*(rota::Rotation3D, rotb::Rotation3D) = Rotation3D(rota.m * rotb.m)
 Base.:*(rot::Rotation3D, point::Point3D) = Point3D(rot.m * point.v)
 
 
@@ -114,7 +120,7 @@ function nvars(var::Pose3D)
 end
 function update(var::Pose3D, updatevec)
     return Pose3D(update(var.rot, updatevec[1], updatevec[2] , updatevec[3]), 
-                  update(var.trans, updatevec[@SR(4, 6)]))
+                  update(var.trans, updatevec[SR(4, 6)]))
 end
 function inverse(var::Pose3D)
     return Pose3D(var.rot', var.rot' * -var.trans)
