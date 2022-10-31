@@ -5,7 +5,7 @@ using Test
 function testcamera(cam::AbstractCamera)
     x = @SVector randn(2)
     err = (@SVector randn(2)) * 1.e-6
-    xe = x .+ err
+    xe = x + err
     W = @SMatrix randn(2, 2)
 
     # Test image to ideal transformations
@@ -16,6 +16,9 @@ function testcamera(cam::AbstractCamera)
     # Test warping of the weight matrix
     ye = image2ideal(cam, xe)
     @test isapprox(Wy * (ye - y), W * err; rtol=1.e-3)
+
+    # Test the update of all zeros returns the same camera
+    @test cam == update(cam, zeros(nvars(cam)))
 end
 
 @testset "camera.jl" begin
@@ -23,7 +26,7 @@ end
     x = @SVector randn(2)
     x = x .* (0.3 * halfimsz)
     err = (@SVector randn(2)) * 1.e-6
-    xe = x .+ err
+    xe = x + err
     W = @SMatrix randn(2, 2)
 
     # Test pixel to image transformations
@@ -33,7 +36,7 @@ end
 
     # Test warping of the weight matrix
     ye = pixel2image(halfimsz, xe)
-    @test isapprox(Wy * (ye - y), W * err; rtol=1.e-6)
+    @test isapprox(Wy * (ye - y), W * err; rtol=1.e-5)
 
     # Test cameras
     testcamera(SimpleCamera(abs(randn())))
