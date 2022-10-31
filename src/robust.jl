@@ -4,26 +4,27 @@ import Plots.plot
 
 # Robustification
 abstract type Robustifier end
+struct NoRobust <: Robustifier
+end
 
-function robustify(kernel::Robustifier, cost::Number)
+function robustify(kernel::NoRobust, cost::Number)
     return cost, 1
 end
 
 function robustkernel(residual::AbstractResidual)
-    return Robustifier
+    return NoRobust()
 end
 
-struct NoRobust{T<:Real} <: Robustifier
+struct ScaledNoRobust{T<:Real} <: Robustifier
     height::T
     height_sqrt::T
 end
 
-NoRobust(h) = HuberKernel(h, sqrt(h))
+ScaledNoRobust(h) = ScaledNoRobust(h, sqrt(h))
 
-function robustify(kernel::NoRobust, cost::Number)
+function robustify(kernel::ScaledNoRobust, cost::Number)
     return cost * kernel.height, kernel.height_sqrt
 end
-
 
 struct HuberKernel{T<:Real} <: Robustifier
     width::T

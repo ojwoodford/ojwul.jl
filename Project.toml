@@ -11,6 +11,7 @@ SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 UserConfig = "38191a5c-9707-409e-a5e4-8d538fd01011"
+VisualGeometryDatasets = "962a53e2-84f2-440b-bfbc-4e96ec28357f"
 
 [compat]
 PkgTemplates = "0.7"

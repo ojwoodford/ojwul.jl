@@ -1,0 +1,61 @@
+using VisualGeometryDatasets, ojwul
+export BALImage, BALResidual
+export varindices, computeresidual, nvars, transform, makeBALproblem
+
+struct BALImage{T<:Real} <: AbstractVariable
+    pose::EffPose3D{T}
+    camera::BALCamera{T}
+end
+function nvars(var::BALImage)
+    return 9
+end
+function update(var::BALImage, updatevec)
+    return BALImage(update(var.pose, updatevec[SR(1, 6)]),
+                    update(var.camera, updatevec[SR(7, 9)]))
+end
+function transform(im::BALImage, X::Point3D)
+    return ideal2image(im.camera, -project(im.pose * X))
+end
+function makeBALImage(rx::T, ry::T, rz::T, tx::T, ty::T, tz::T, f::T, k1::T, k2::T) where T<:Real
+    R = Rotation3DL(rx, ry, rz)
+    return BALImage{T}(EffPose3D(R, Point3D(R.m' * -SVector(tx, ty, tz))), BALCamera(f, k1, k2))
+end
+makeBALImage(v) = makeBALImage(v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9])
+
+struct BALResidual{T<:Real} <: AbstractResidual
+    measurement::SVector{2, T}
+    varind::SVector{2, Int}
+end
+BALResidual(m, v) = BALResidual(SVector{2}(m[1], m[2]), SVector{2, Int}(v[1], v[2]))
+function varindices(res::BALResidual)
+    return res.varind
+end
+function computeresidual(res::BALResidual, im::BALImage, X::Point3D)
+    return transform(im, X) - res.measurement
+end
+
+function makeBALproblem(name)
+    # Load the data
+    data = loadbaldataset(name)
+
+    # Construct the cameras and landmarks
+    vars = Vector{AbstractVariable}()
+    # Add the cameras
+    for col = eachcol(data.cameras)
+        push!(vars, makeBALImage(col))
+    end
+    numcameras = length(vars)
+    # Add the landmarks
+    for col = eachcol(data.landmarks)
+        push!(vars, Point3D(col[1], col[2], col[3]))
+    end
+
+    # Construct the residuals
+    residuals = Vector{BALResidual}()
+    for ind = 1:size(data.measurementindices, 2)
+        push!(residuals, BALResidual(data.measurements[:,ind], SVector{2, Int}(data.measurementindices[1,ind], data.measurementindices[2,ind] + numcameras)))
+    end
+
+    # Return the optimization problem
+    return (vars, residuals)
+end

@@ -11,7 +11,7 @@ function cost(residual::AbstractResidual, vars::Vector{<:AbstractVariable})
     # Dispatch to the correct residual function with the correct block of variables
     r = computeresidual(residual, vars[varindices(residual)]...)
     # Compute the  robustified cost
-    return robustify(r' * r, robustkernel(residual))
+    return robustify(robustkernel(residual), r' * r)[1]
 end
 
 function costgradhess!(grad, hess, residual::AbstractResidual, vars::Vector{<:AbstractVariable})
@@ -28,7 +28,7 @@ function costgradhess!(grad, hess, residual::AbstractResidual, vars::Vector{<:Ab
     res = value(r)
 
     # Compute the cost and scale the residual and Jacobian 
-    c, w = robustify(res' * res, robustkernel(residual))
+    c, w = robustify(robustkernel(residual), res' * res)
     if w != 1
         res .*= w
         jac .*= w

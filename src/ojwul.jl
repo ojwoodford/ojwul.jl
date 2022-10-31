@@ -8,4 +8,5 @@ include("optimize.jl")
 include("robust.jl")
 include("residual.jl")
 include("stats.jl")
+include("bundleadjustment.jl")
 end
