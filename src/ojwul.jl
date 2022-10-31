@@ -6,5 +6,6 @@ include("fileio.jl")
 include("geometry.jl")
 include("optimize.jl")
 include("robust.jl")
+include("residual.jl")
 include("stats.jl")
 end

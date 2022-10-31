@@ -1,4 +1,4 @@
-export AbstractCamera, SimpleCamera, NoDistortionCamera, ExtendedUnifiedCamera
+export AbstractCamera, SimpleCamera, NoDistortionCamera, ExtendedUnifiedCamera, BALCamera
 export ideal2image, image2ideal, pixel2image, image2pixel, update, nvars
 import ojwul.AbstractVariable
 abstract type AbstractCamera <: AbstractVariable end
@@ -80,19 +80,14 @@ function update(var::EULensDistortion, updatevec)
 end
 
 function ideal2distorted(lens::EULensDistortion, x)
-    z = 1 ./ (1 .+ lens.alpha .* (sqrt.(lens.beta .* sum(abs2, x, dims=1) .+ 1) .- 1))
-    return x .* z
-end
-
-function ideal2distorted(lens::EULensDistortion, x::StaticVector)
     z = 1 / (1 + lens.alpha * (sqrt(lens.beta * (x' * x) + 1) - 1))
     return x * z
 end
 
 function distorted2ideal(lens::EULensDistortion, x)
-    z = lens.beta .* sum(abs2, x, dims=1)
-    z = (1 .+ lens.alpha .* (sqrt.(1 .+ z .* (1 .- 2 .* lens.alpha)) .- 1)) ./ (1 .- z .* (lens.alpha ^ 2))
-    return x .* z
+    z = lens.beta * (x' * x)
+    z = (1 + lens.alpha * (sqrt(1 + z * (1 - 2 * lens.alpha)) - 1)) / (1 - z * (lens.alpha ^ 2))
+    return x * z
 end
 
 function distorted2ideal(lens::EULensDistortion, x, W)
@@ -130,6 +125,40 @@ end
 function image2ideal(camera::ExtendedUnifiedCamera, x, W)
     y, W_ = image2ideal(camera.sensor, x, W)
     return distorted2ideal(camera.lens, y, W_)
+end
+
+struct BarrelDistortion{T<:Number} <: AbstractVariable
+    k1::T
+    k2::T
+end
+function nvars(var::BarrelDistortion)
+    return 2
+end
+function update(var::BarrelDistortion, updatevec)
+    return BarrelDistortion(k1 + updatevec[1], k2 + updatevec[2])
+end
+
+function ideal2distorted(lens::BarrelDistortion, x)
+    z = x' * x
+    z = z * (lens.k1 + z * lens.k2) + 1
+    return x * z
+end
+
+struct BALCamera{T<:Number} <: AbstractCamera
+    sensor::SimpleCamera{T}
+    lens::BarrelDistortion{T}
+end
+BALCamera(f, k1, k2) = BALCamera(SimpleCamera(f), BarrelDistortion(k1, k2))
+function nvars(var::BALCamera)
+    return 3
+end
+function update(var::BALCamera, updatevec)
+    return BALCamera(update(var.sensor, updatevec[1]),
+                     update(var.lens, updatevec[SR(2, 3)]))
+end
+
+function ideal2image(camera::BALCamera, x)
+    return ideal2image(camera.sensor, ideal2distorted(camera.lens, x))
 end
 
 struct LensDistortResidual{T<:Number} <: AbstractResidual

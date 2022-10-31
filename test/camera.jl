@@ -5,7 +5,7 @@ using Test
 function testcamera(cam::AbstractCamera)
     x = @SVector randn(2)
     err = (@SVector randn(2)) * 1.e-6
-    xe = x .+ err
+    xe = x + err
     W = @SMatrix randn(2, 2)
 
     # Test image to ideal transformations
@@ -26,7 +26,7 @@ end
     x = @SVector randn(2)
     x = x .* (0.3 * halfimsz)
     err = (@SVector randn(2)) * 1.e-6
-    xe = x .+ err
+    xe = x + err
     W = @SMatrix randn(2, 2)
 
     # Test pixel to image transformations
