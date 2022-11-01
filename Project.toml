@@ -15,6 +15,7 @@ VisualGeometryDatasets = "962a53e2-84f2-440b-bfbc-4e96ec28357f"
 
 [compat]
 PkgTemplates = "0.7"
+Plots = "1"
 julia = "1.6"
 
 [extras]
