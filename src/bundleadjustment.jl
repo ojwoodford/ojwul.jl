@@ -1,6 +1,6 @@
 using VisualGeometryDatasets, ojwul
 export BALImage, BALResidual
-export varindices, computeresidual, nvars, transform, makeBALproblem
+export varindices, computeresidual, robustkernel, nvars, transform, makeBALproblem
 
 struct BALImage{T<:Real} <: AbstractVariable
     pose::EffPose3D{T}
@@ -9,9 +9,9 @@ end
 function nvars(var::BALImage)
     return 9
 end
-function update(var::BALImage, updatevec)
-    return BALImage(update(var.pose, updatevec[SR(1, 6)]),
-                    update(var.camera, updatevec[SR(7, 9)]))
+function update(var::BALImage, updatevec, start=0)
+    return BALImage(update(var.pose, updatevec, start),
+                    update(var.camera, updatevec, start+6))
 end
 function transform(im::BALImage, X::Point3D)
     return ideal2image(im.camera, -project(im.pose * X))
@@ -33,6 +33,11 @@ end
 function computeresidual(res::BALResidual, im::BALImage, X::Point3D)
     return transform(im, X) - res.measurement
 end
+const balrobustifier = HuberKernel(2., 4., 1., 1.)
+function robustkernel(::BALResidual)
+    return balrobustifier
+end
+
 
 function makeBALproblem(name)
     # Load the data

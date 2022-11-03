@@ -24,8 +24,8 @@ end
 function nvars(var::SimpleCamera)
     return 1
 end
-function update(var::SimpleCamera, updatevec)
-    return SimpleCamera(var.f * exp(updatevec[1]))
+function update(var::SimpleCamera, updatevec, start=0)
+    return SimpleCamera(var.f * exp(updatevec[start+1]))
 end
 
 function ideal2image(camera::SimpleCamera, x)
@@ -48,9 +48,9 @@ end
 function nvars(var::NoDistortionCamera)
     return 4
 end
-function update(var::NoDistortionCamera, updatevec)
-    return NoDistortionCamera(SVector(var.f[1] * exp(updatevec[1]), var.f[2] * exp(updatevec[2])), 
-                              SVector(var.c[1] + updatevec[3], var.c[2] + updatevec[4]))
+function update(var::NoDistortionCamera, updatevec, start=0)
+    return NoDistortionCamera(SVector(var.f[1] * exp(updatevec[start+1]), var.f[2] * exp(updatevec[start+2])), 
+                              SVector(var.c[1] + updatevec[start+3], var.c[2] + updatevec[start+4]))
 end
 
 function ideal2image(camera::NoDistortionCamera, x)
@@ -72,10 +72,10 @@ end
 function nvars(var::EULensDistortion)
     return 2
 end
-function update(var::EULensDistortion, updatevec)
-    alpha = var.alpha * exp(updatevec[1])
+function update(var::EULensDistortion, updatevec, start=0)
+    alpha = var.alpha * exp(updatevec[start+1])
     alpha = alpha / (1 + (alpha - var.alpha))
-    beta = (var.beta != 0 ? var.beta : eps(var.beta)) * exp(updatevec[2])
+    beta = (var.beta != 0 ? var.beta : eps(var.beta)) * exp(updatevec[start+2])
     return EULensDistortion(alpha, beta)
 end
 
@@ -109,9 +109,9 @@ ExtendedUnifiedCamera(f, c, a, b) = ExtendedUnifiedCamera(NoDistortionCamera(f, 
 function nvars(var::ExtendedUnifiedCamera)
     return 6
 end
-function update(var::ExtendedUnifiedCamera, updatevec)
-    return ExtendedUnifiedCamera(update(var.sensor, updatevec[SR(1, 4)]),
-                                 update(var.lens, updatevec[SR(5, 6)]))
+function update(var::ExtendedUnifiedCamera, updatevec, start=0)
+    return ExtendedUnifiedCamera(update(var.sensor, updatevec, start),
+                                 update(var.lens, updatevec, start+4))
 end
 
 function ideal2image(camera::ExtendedUnifiedCamera, x)
@@ -134,8 +134,8 @@ end
 function nvars(var::BarrelDistortion)
     return 2
 end
-function update(var::BarrelDistortion, updatevec)
-    return BarrelDistortion(k1 + updatevec[1], k2 + updatevec[2])
+function update(var::BarrelDistortion, updatevec, start=0)
+    return BarrelDistortion(var.k1 + updatevec[start+1], var.k2 + updatevec[start+2])
 end
 
 function ideal2distorted(lens::BarrelDistortion, x)
@@ -152,9 +152,9 @@ BALCamera(f, k1, k2) = BALCamera(SimpleCamera(f), BarrelDistortion(k1, k2))
 function nvars(var::BALCamera)
     return 3
 end
-function update(var::BALCamera, updatevec)
-    return BALCamera(update(var.sensor, updatevec[1]),
-                     update(var.lens, updatevec[SR(2, 3)]))
+function update(var::BALCamera, updatevec, start=0)
+    return BALCamera(update(var.sensor, updatevec, start),
+                     update(var.lens, updatevec, start+1))
 end
 
 function ideal2image(camera::BALCamera, x)

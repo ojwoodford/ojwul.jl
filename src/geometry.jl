@@ -55,8 +55,8 @@ Point3D() = Point3D(SVector{3}(0., 0., 0.))
 function nvars(var::Point3D)
     return 3
 end
-function update(var::Point3D, updatevec)
-    return Point3D(var.v + updatevec)
+function update(var::Point3D, updatevec, start=0)
+    return Point3D(var.v + updatevec[SR(1, 3) .+ start])
 end
 
 function project(x::Point3D)
@@ -73,8 +73,8 @@ Rotation3DR() = Rotation3DR(SMatrix{3, 3, Float64}(1., 0., 0., 0., 1., 0., 0., 0
 function nvars(var::Rotation3DR)
     return 3
 end
-function update(var::Rotation3DR, updatevec)
-    return var * rodrigues(updatevec[1], updatevec[2], updatevec[3])
+function update(var::Rotation3DR, updatevec, start=0)
+    return var * rodrigues(updatevec[start+1], updatevec[start+2], updatevec[start+3])
 end
 transform(rota::Rotation3DR, rotb::Rotation3DR) = Rotation3DR(rota.m * rotb.m)
 transform(rot::Rotation3DR, point::Point3D) = Point3D(rot.m * point.v)
@@ -87,8 +87,8 @@ Rotation3DL() = Rotation3DL(SMatrix{3, 3, Float64}(1., 0., 0., 0., 1., 0., 0., 0
 function nvars(var::Rotation3DL)
     return 3
 end
-function update(var::Rotation3DL, updatevec)
-    return Rotation3DL(updatevec[1], updatevec[2], updatevec[3]) * var
+function update(var::Rotation3DL, updatevec, start=0)
+    return Rotation3DL(updatevec[start+1], updatevec[start+2], updatevec[start+3]) * var
 end
 transform(rota::Rotation3DL, rotb::Rotation3DL) = Rotation3DL(rota.m * rotb.m)
 transform(rot::Rotation3DL, point::Point3D) = Point3D(rot.m * point.v)
@@ -104,8 +104,8 @@ Pose3D() = Pose3D(Rotation3DR(), Point3D())
 function nvars(var::Pose3D)
     return 6
 end
-function update(var::Pose3D, updatevec)
-    return Pose3D(update(var.rot, updatevec[SR(1, 3)]), update(var.trans, updatevec[SR(4, 6)]))
+function update(var::Pose3D, updatevec, start=0)
+    return Pose3D(update(var.rot, updatevec, start), update(var.trans, updatevec, start+3))
 end
 function inverse(var::Pose3D)
     return Pose3D(var.rot', var.rot' * -var.trans)
@@ -121,8 +121,8 @@ EffPose3D() = Pose3D(Rotation3DL(), Point3D())
 function nvars(var::EffPose3D)
     return 6
 end
-function update(var::EffPose3D, updatevec)
-    return EffPose3D(update(var.rot, updatevec[SR(1, 3)]), update(var.camcenter, updatevec[SR(4, 6)]))
+function update(var::EffPose3D, updatevec, start=0)
+    return EffPose3D(update(var.rot, updatevec, start), update(var.camcenter, updatevec, start+3))
 end
 function inverse(var::EffPose3D)
     return EffPose3D(var.rot', var.rot * -var.camcenter)
@@ -139,8 +139,8 @@ UnitPose3D((rx, ry, rz, tx, ty, tz)) = Pose3D(Rotation3DL(rx, ry, rz), Rotation3
 function nvars(var::UnitPose3D)
     return 5
 end
-function update(var::UnitPose3D, updatevec)
-    return UnitPose3D(update(var.rot, updatevec[SR(1, 3)]), update(var.trans, SVector(0, updatevec[4], updatevec[5])))
+function update(var::UnitPose3D, updatevec, start=0)
+    return UnitPose3D(update(var.rot, updatevec, start), update(var.trans, SVector(0, updatevec[start+4], updatevec[start+5])))
 end
 function inverse(var::UnitPose3D)
     return Pose3D(var.rot', var.rot' * -var.trans.m[:,1])
