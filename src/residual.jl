@@ -8,9 +8,11 @@ function cost(residuals::Vector{<:AbstractResidual}, vars::Vector{<:AbstractVari
     return c
 end
 
-function cost(residual::AbstractResidual, vars::Vector{<:AbstractVariable})
-    # Dispatch to the correct residual function with the correct block of variables
-    r = computeresidual(residual, vars[varindices(residual)]...)
+function cost(residual::Residual, vars::Vector{<:AbstractVariable}) where Residual <: AbstractResidual
+    # Get the variables required to compute the residual
+    v = getvars(residual, vars)
+    # Compute the residual
+    r = computeresidual(residual, v...)
     # Compute the  robustified cost
     return robustify(robustkernel(residual), r' * r)[1]
 end
@@ -51,15 +53,14 @@ end
 
 function costgradhess!(grad, hess, residual::AbstractResidual, vars::Vector{<:AbstractVariable}, blockindex::Vector{Int})
     # Get the variables
-    varind = varindices(residual)
-    vars = vars[varind]
+    v = getvars(residual, vars)
 
     # Compute the robust residual
     res = computeresidual(residual, vars...)
     c, w = robustify(robustkernel(residual), res' * res)
 
     # Compute the number of variables and the block offsets
-    blockindex = blockindex[varind]
+    blockindex = blockindex[residual.varind]
     numvars = 0
     blockoffsets = Vector{Int}()
     for ind = range(1, length(varind))

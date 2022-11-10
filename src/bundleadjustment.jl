@@ -1,12 +1,12 @@
 using VisualGeometryDatasets, ojwul
 export BALImage, BALResidual
-export varindices, computeresidual, robustkernel, nvars, transform, makeBALproblem
+export getvars, computeresidual, robustkernel, nvars, transform, makeBALproblem
 
 struct BALImage{T<:Real} <: AbstractVariable
     pose::EffPose3D{T}
     camera::BALCamera{T}
 end
-function nvars(var::BALImage)
+function nvars(::BALImage)
     return 9
 end
 function update(var::BALImage, updatevec, start=0)
@@ -27,8 +27,8 @@ struct BALResidual{T<:Real} <: AbstractResidual
     varind::SVector{2, Int}
 end
 BALResidual(m, v) = BALResidual(SVector{2}(m[1], m[2]), SVector{2, Int}(v[1], v[2]))
-function varindices(res::BALResidual)
-    return res.varind
+function getvars(res::BALResidual{T}, vars::Vector{<:AbstractVariable}) where T
+    return vars[res.varind[1]]::BALImage{T}, vars[res.varind[2]]::Point3D{T}
 end
 function computeresidual(res::BALResidual, im::BALImage, X::Point3D)
     return transform(im, X) - res.measurement
@@ -56,7 +56,7 @@ function makeBALproblem(name)
     end
 
     # Construct the residuals
-    residuals = Vector{BALResidual}()
+    residuals = Vector{BALResidual{Float64}}()
     for ind = 1:size(data.measurementindices, 2)
         push!(residuals, BALResidual(data.measurements[:,ind], SVector{2, Int}(data.measurementindices[1,ind], data.measurementindices[2,ind] + numcameras)))
     end
