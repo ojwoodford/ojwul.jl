@@ -40,75 +40,51 @@ function computeoffsets(vars::Tuple, ::Val{varflags}, blockind) where varflags
     return vcat(ntuple(i -> SR(1, nvars(vars[i]) * ((varflags >> (i - 1)) & 1)) .+ (blockind[i] - 1), length(vars))...)
 end
 
-function gradhesshelperfd!(grad, hess, residual::Residual, vars::Vector{<:AbstractVariable}, blockind, ::Val{varflags}) where {varflags, Residual <: AbstractResidual}
-    # Get the variables
-    v = getvars(residual, vars)
+function updateblocks!(grad, hess, res, jac, w, blockoffsets)
+    # IRLS weighting of the residual and Jacobian 
+    if w != 1
+        res = res * w
+        jac = jac * w
+    end
 
+    # Update the blocks in the problem
+    grad[blockoffsets] += jac' * res
+    hess[blockoffsets, blockoffsets] += jac' * jac
+    return nothing
+end
+
+function computejacobianfd(residual, v, ::Val{varflags}) where varflags
     # Compute the residual
     res = computeresidual(residual, v...)
 
-    # Compute the robustified cost and the IRLS weight
-    c, w = robustify(robustkernel(residual), res' * res)
-
-    # Bail early if the weight is zero
-    if w == 0
-        return c
-    end
-
     # Compute the Jacobian
     jac = ForwardDiff.jacobian(z -> computeresidual(residual, updatevars(v, Val(varflags), z)...), zeros(SVector{countvars(v, Val(varflags)), eltype(res)}))
-
-    # IRLS weighting of the residual and Jacobian 
-    if w != 1
-        res = res * w
-        jac = jac * w
-    end
-
-    # Update the blocks in the problem
-    blockoffsets = computeoffsets(v, Val(varflags), blockind)
-    grad[blockoffsets] += jac' * res
-    hess[blockoffsets, blockoffsets] += jac' * jac
-
-    # Return the cost
-    return c
+    return res, jac
 end
 
-function gradhesshelperzy!(grad, hess, residual::Residual, vars::Vector{<:AbstractVariable}, blockind, ::Val{varflags}) where {varflags, Residual <: AbstractResidual}
+function computejacobianzy(residual, v, ::Val{varflags}) where varflags
+    # Compute the Jacobian
+    res, jac = Zygote.forward_jacobian(z -> computeresidual(residual, updatevars(v, Val(varflags), z)...), zeros(SVector{countvars(v, Val(varflags)), Float64}))
+    return res, jac'
+end
+
+function gradhesshelper!(grad, hess, residual::Residual, vars::Vector{<:AbstractVariable}, blockind, ::Val{varflags}) where {varflags, Residual <: AbstractResidual}
     # Get the variables
     v = getvars(residual, vars)
 
-    # Compute the Jacobian
-    res, jac = Zygote.forward_jacobian(z -> computeresidual(residual, updatevars(v, Val(varflags), z)...), zeros(SVector{countvars(v, Val(varflags)), Float64}))
+    # Compute the residual and Jacobian
+    res, jac = computejacobianfd(residual, v, Val(varflags))
+    # res, jac = computejacobianzy(residual, v, Val(varflags))
 
     # Compute the robustified cost and the IRLS weight
     c, w = robustify(robustkernel(residual), res' * res)
 
-    # Bail early if the weight is zero
-    if w == 0
-        return c
+    if w > 0
+        # Update the blocks in the problem
+        updateblocks!(grad, hess, res, jac, w, computeoffsets(v, Val(varflags), blockind))
     end
-
-    # IRLS weighting of the residual and Jacobian 
-    if w != 1
-        res = res * w
-        jac = jac * w
-    end
-
-    # Update the blocks in the problem
-    blockoffsets = computeoffsets(v, Val(varflags), blockind)
-    grad[blockoffsets] += jac * res
-    hess[blockoffsets, blockoffsets] += jac * jac'
 
     # Return the cost
-    return c
-end
-
-function costgradhess!(grad, hess, residuals, vars::Vector{<:AbstractVariable}, blockindex::Vector{Int})
-    # Go over all resdiduals, updating the gradient & hessian, and aggregating the cost 
-    c = 0.
-    for res in residuals
-        c += costgradhess!(grad, hess, res, vars, blockindex)
-    end
     return c
 end
 
@@ -121,6 +97,15 @@ function costgradhess!(grad, hess, residual::Residual, vars::Vector{<:AbstractVa
         return cost(residual, vars)
     end
     # Dispatch gradient computation based on the varflags, and return the cost
-    #return gradhesshelperfd!(grad, hess, residual, vars, blockind, Val(varflags))
-    return valuedispatch(Val(1), Val((2^nvars(residual))-1), v -> gradhesshelperfd!(grad, hess, residual, vars, blockind, v), varflags)
+    #return gradhesshelper!(grad, hess, residual, vars, blockind, Val(varflags))
+    return valuedispatch(Val(1), Val((2^nvars(residual))-1), v -> gradhesshelper!(grad, hess, residual, vars, blockind, v), varflags)
+end
+
+function costgradhess!(grad, hess, residuals, vars::Vector{<:AbstractVariable}, blockindex::Vector{Int})
+    # Go over all resdiduals, updating the gradient & hessian, and aggregating the cost 
+    c = 0.
+    for res in residuals
+        c += costgradhess!(grad, hess, res, vars, blockindex)
+    end
+    return c
 end
