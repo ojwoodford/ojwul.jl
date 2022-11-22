@@ -56,7 +56,7 @@ function gradhesshelperfd!(grad, hess, residual::Residual, vars::Vector{<:Abstra
     end
 
     # Compute the Jacobian
-    jac = ForwardDiff.jacobian(z -> computeresidual(residual, updatevars(v, Val(varflags), z)...), zeros(SVector{countvars(v, Val(varflags)), typeof(res)}))
+    jac = ForwardDiff.jacobian(z -> computeresidual(residual, updatevars(v, Val(varflags), z)...), zeros(SVector{countvars(v, Val(varflags)), eltype(res)}))
 
     # IRLS weighting of the residual and Jacobian 
     if w != 1
@@ -121,6 +121,6 @@ function costgradhess!(grad, hess, residual::Residual, vars::Vector{<:AbstractVa
         return cost(residual, vars)
     end
     # Dispatch gradient computation based on the varflags, and return the cost
-    return gradhesshelperzy!(grad, hess, residual, vars, blockind, Val(varflags))
-    # return valuedispatch(Val(1), Val((2^nvars(residual))-1), v -> gradhesshelperzy!(grad, hess, residual, vars, blockind, v), varflags)
+    #return gradhesshelperfd!(grad, hess, residual, vars, blockind, Val(varflags))
+    return valuedispatch(Val(1), Val((2^nvars(residual))-1), v -> gradhesshelperfd!(grad, hess, residual, vars, blockind, v), varflags)
 end
