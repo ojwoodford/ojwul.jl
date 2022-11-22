@@ -115,7 +115,7 @@ end
 function costgradhess!(grad, hess, residual::Residual, vars::Vector{<:AbstractVariable}, blockindex::Vector{Int}) where Residual <: AbstractResidual
     # Get the bitset for the input variables, as an integer
     blockind = blockindex[residual.varind]
-    varflags = foldl((x, y) -> (x << 1) + (y != 0), blockind, init=0)
+    varflags = foldl((x, y) -> (x << 1) + (y != 0), reverse(blockind), init=0)
     # If there are no variables, just return the cost
     if varflags == 0
         return cost(residual, vars)
