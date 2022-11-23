@@ -20,23 +20,20 @@ function cost(residual::Residual, vars::Vector{<:AbstractVariable}) where Residu
 end
 
 # Count the numbers of variables in the inputs
-function countvars(vars::Tuple, ::Val{varflags}) where varflags
-    flags = varflags
-    count = 0
-    for v in vars
-        count += nvars(v) * (flags & 1)
-        flags >>= 1
+@inline function countvars(vars::Tuple, ::Val{varflags}) where varflags
+    if isempty(vars)
+        return 0
     end
-    return count
+    return sum(ntuple(i -> ((varflags >> (i - 1)) & 1) != 0 ? nvars(vars[i]) : 0, length(vars)))
 end
 
 # Generate the updated variables
-function updatevars(vars::Tuple, ::Val{varflags}, advar) where varflags
+@inline function updatevars(vars, varflags, advar)
     return ntuple(i -> ((varflags >> (i - 1)) & 1) != 0 ? update(vars[i], advar, countvars(vars[1:i-1], Val(varflags))) : vars[i], length(vars))
 end
 
 # Compute the offsets of the variables
-function computeoffsets(vars::Tuple, ::Val{varflags}, blockind) where varflags
+@inline function computeoffsets(vars, varflags, blockind)
     return vcat(ntuple(i -> SR(1, nvars(vars[i]) * ((varflags >> (i - 1)) & 1)) .+ (blockind[i] - 1), length(vars))...)
 end
 
@@ -58,13 +55,15 @@ function computejacobianfd(residual, v, ::Val{varflags}) where varflags
     res = computeresidual(residual, v...)
 
     # Compute the Jacobian
-    jac = ForwardDiff.jacobian(z -> computeresidual(residual, updatevars(v, Val(varflags), z)...), zeros(SVector{countvars(v, Val(varflags)), eltype(res)}))
+    N = countvars(v, Val(varflags))
+    Z = zeros(SVector{N, eltype(res)})
+    jac = ForwardDiff.jacobian(z -> computeresidual(residual, updatevars(v, varflags, z)...), Z)::SMatrix{length(res), N, eltype(res), length(res)*N}
     return res, jac
 end
 
 function computejacobianzy(residual, v, ::Val{varflags}) where varflags
     # Compute the Jacobian
-    res, jac = Zygote.forward_jacobian(z -> computeresidual(residual, updatevars(v, Val(varflags), z)...), zeros(SVector{countvars(v, Val(varflags)), Float64}))
+    res, jac = Zygote.forward_jacobian(z -> computeresidual(residual, updatevars(v, varflags, z)...), zeros(SVector{countvars(v, Val(varflags)), Float64}))
     return res, jac'
 end
 
@@ -81,7 +80,7 @@ function gradhesshelper!(grad, hess, residual::Residual, vars::Vector{<:Abstract
 
     if w > 0
         # Update the blocks in the problem
-        updateblocks!(grad, hess, res, jac, w, computeoffsets(v, Val(varflags), blockind))
+        updateblocks!(grad, hess, res, jac, w, computeoffsets(v, varflags, blockind))
     end
 
     # Return the cost
