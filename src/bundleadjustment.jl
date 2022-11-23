@@ -49,19 +49,19 @@ function makeBALproblem(name)
     # Construct the cameras and landmarks
     vars = Vector{AbstractVariable}()
     # Add the cameras
-    for col = eachcol(data.cameras)
-        push!(vars, makeBALImage(col))
+    for cam in data.cameras
+        push!(vars, makeBALImage(cam))
     end
     numcameras = length(vars)
     # Add the landmarks
-    for col = eachcol(data.landmarks)
-        push!(vars, Point3D(col[1], col[2], col[3]))
+    for lm in data.landmarks
+        push!(vars, Point3D(lm[1], lm[2], lm[3]))
     end
 
     # Construct the residuals
     residuals = Vector{BALResidual{Float64}}()
-    for ind = 1:size(data.measurementindices, 2)
-        push!(residuals, BALResidual(data.measurements[:,ind], SVector{2, Int}(data.measurementindices[1,ind], data.measurementindices[2,ind] + numcameras)))
+    for meas in data.measurements
+        push!(residuals, BALResidual(SVector(meas.x, meas.y), SVector(meas.camera, meas.landmark + numcameras)))
     end
 
     # Return the optimization problem
