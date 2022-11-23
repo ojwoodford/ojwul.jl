@@ -6,9 +6,7 @@ struct BALImage{T<:Real} <: AbstractVariable
     pose::EffPose3D{T}
     camera::BALCamera{T}
 end
-function nvars(::BALImage)
-    return 9
-end
+nvars(::BALImage) = 9
 function update(var::BALImage, updatevec, start=0)
     return BALImage(update(var.pose, updatevec, start),
                     update(var.camera, updatevec, start+6))
@@ -27,9 +25,7 @@ struct BALResidual{T<:Real} <: AbstractResidual
     varind::SVector{2, Int}
 end
 BALResidual(m, v) = BALResidual(SVector{2}(m[1], m[2]), SVector{2, Int}(v[1], v[2]))
-function nvars(::BALResidual)
-    return 2
-end
+nvars(::BALResidual) = 2
 function getvars(res::BALResidual{T}, vars::Vector{<:AbstractVariable}) where T
     return vars[res.varind[1]]::BALImage{T}, vars[res.varind[2]]::Point3D{T}
 end
