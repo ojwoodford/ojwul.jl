@@ -1,4 +1,4 @@
-import ForwardDiff, Zygote, ojwul.valuedispatch
+import ForwardDiff, ojwul.valuedispatch
 export cost, costgradhess!
 
 function cost(residuals, vars::Vector{<:AbstractVariable})
@@ -13,8 +13,10 @@ end
 function cost(residual::Residual, vars::Vector{<:AbstractVariable}) where Residual <: AbstractResidual
     # Get the variables required to compute the residual
     v = getvars(residual, vars)
+
     # Compute the residual
     r = computeresidual(residual, v...)
+    
     # Compute the robustified cost
     return robustify(robustkernel(residual), r' * r)[1]
 end
@@ -50,35 +52,28 @@ function updateblocks!(grad, hess, res, jac, w, blockoffsets)
     return nothing
 end
 
-function computejacobianfd(residual, v, ::Val{varflags}) where varflags
-    # Compute the residual
-    res = computeresidual(residual, v...)
-
-    # Compute the Jacobian
-    N = countvars(v, Val(varflags))
-    Z = zeros(SVector{N, eltype(res)})
-    jac = ForwardDiff.jacobian(z -> computeresidual(residual, updatevars(v, varflags, z)...), Z)::SMatrix{length(res), N, eltype(res), length(res)*N}
-    return res, jac
-end
-
-function computejacobianzy(residual, v, ::Val{varflags}) where varflags
-    # Compute the Jacobian
-    res, jac = Zygote.forward_jacobian(z -> computeresidual(residual, updatevars(v, varflags, z)...), zeros(SVector{countvars(v, Val(varflags)), Float64}))
-    return res, jac'
+# Automatic Jacobian computation
+function computejacobian(residual::Residual, vars, ::Val{varflags}) where {varflags, Residual <: AbstractResidual}
+    N = countvars(vars, Val(varflags))
+    Z = zeros(SVector{N, eltype(residual)})
+    return ForwardDiff.jacobian(z -> computeresidual(residual, updatevars(vars, varflags, z)...), Z)::SMatrix{reslen(residual), N, eltype(residual), reslen(residual)*N}
 end
 
 function gradhesshelper!(grad, hess, residual::Residual, vars::Vector{<:AbstractVariable}, blockind, ::Val{varflags}) where {varflags, Residual <: AbstractResidual}
     # Get the variables
     v = getvars(residual, vars)
 
-    # Compute the residual and Jacobian
-    res, jac = computejacobianfd(residual, v, Val(varflags))
-    # res, jac = computejacobianzy(residual, v, Val(varflags))
+    # Compute the residual
+    res = computeresidual(residual, v...)
 
     # Compute the robustified cost and the IRLS weight
     c, w = robustify(robustkernel(residual), res' * res)
 
+    # If this residual has a weight...
     if w > 0
+        # Compute the Jacobian
+        jac = computejacobian(residual, v, Val(varflags))
+    
         # Update the blocks in the problem
         updateblocks!(grad, hess, res, jac, w, computeoffsets(v, varflags, blockind))
     end
@@ -91,10 +86,12 @@ function costgradhess!(grad, hess, residual::Residual, vars::Vector{<:AbstractVa
     # Get the bitset for the input variables, as an integer
     blockind = blockindex[residual.varind]
     varflags = foldl((x, y) -> (x << 1) + (y != 0), reverse(blockind), init=0)
+
     # If there are no variables, just return the cost
     if varflags == 0
         return cost(residual, vars)
     end
+
     # Dispatch gradient computation based on the varflags, and return the cost
     #return gradhesshelper!(grad, hess, residual, vars, blockind, Val(varflags))
     return valuedispatch(Val(1), Val((2^nvars(residual))-1), v -> gradhesshelper!(grad, hess, residual, vars, blockind, v), varflags)

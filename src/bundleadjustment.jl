@@ -25,7 +25,11 @@ struct BALResidual{T<:Real} <: AbstractResidual
     varind::SVector{2, Int}
 end
 BALResidual(m, v) = BALResidual(SVector{2}(m[1], m[2]), SVector{2, Int}(v[1], v[2]))
-nvars(::BALResidual) = 2
+nvars(::BALResidual) = 2 # Residual depends on 2 variables
+reslen(::BALResidual) = 2 # The residual is a vector of length 2
+function eltype(::BALResidual{T}) where T
+    return T
+end
 function getvars(res::BALResidual{T}, vars::Vector{<:AbstractVariable}) where T
     return vars[res.varind[1]]::BALImage{T}, vars[res.varind[2]]::Point3D{T}
 end
